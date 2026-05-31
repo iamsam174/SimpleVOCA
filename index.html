@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Simple VOCA App</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --primary-color: #4a90e2;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: #333;
+            user-select: none;
+            -webkit-user-select: none;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* ヘッダーのスタイル（完全に固定） */
+        header {
+            background-color: #ffffff !important;
+            color: #333333 !important;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 24px;
+            font-weight: bold;
+            position: relative;
+            flex-shrink: 0;
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        /* もどる・操作ボタンのスタイル強制固定 */
+        .back-btn {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #555555 !important;
+            color: #ffffff !important;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        .back-btn:hover {
+            background-color: #333333 !important;
+        }
+
+        /* 画面全体のベース */
+        .screen { 
+            display: none; 
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            flex-direction: column;
+        }
+        .screen.active { 
+            display: flex; 
+        }
+
+        /* 各画面のコンテンツエリア */
+        .screen-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            width: 100%;
+            height: calc(100% - 74px);
+            overflow: hidden;
+        }
+        
+        /* 1. 起動画面のメニューレイアウト */
+        .menu-container {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            width: 100%;
+            max-width: 900px;
+            box-sizing: border-box;
+        }
+        .menu-icon {
+            background-color: white;
+            padding: 35px 40px;
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+            cursor: pointer;
+            border: 4px solid transparent;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            width: 100%;
+        }
+        .menu-icon-create { border-color: var(--primary-color); }
+        .menu-icon-play { border-color: var(--success-color); }
+        .menu-icon-edit { border-color: var(--warning-color); }
+        
+        .menu-icon h2, .menu-icon p {
+            pointer-events: none; 
+        }
+        .menu-icon h2 { 
+            margin: 0 0 12px 0; 
+            font-size: 30px;
+            color: #222; 
+            white-space: nowrap;
+        }
+        .menu-icon p { 
+            margin: 0; 
+            color: #666; 
+            font-size: 18px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        /* 2. 設定画面のボックス */
+        .settings-box {
+            background: white;
+            padding: 50px;
+            border-radius: 24px;
+            max-width: 550px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.06);
+            box-sizing: border-box;
+        }
+        .select-group {
+            margin: 40px 0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .select-group label {
+            font-size: 22px;
+            font-weight: bold;
+        }
+        .select-group select {
+            padding: 12px 24px;
+            font-size: 22px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+            margin-left: 10px;
+        }
+        .btn-large {
+            width: 100%;
+            padding: 18px;
+            font-size: 22px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* 3 & 4. ボード描画グリッド共通スタイル */
+        .grid-container {
+            display: grid;
+            gap: 15px;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        .voca-button {
+            background-color: #fff;
+            border: 2px solid #ddd;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.04);
+            overflow: hidden;
+            box-sizing: border-box;
+            position: relative;
+        }
+        .voca-button img {
+            max-width: 100%;
+            max-height: 70%;
+            object-fit: contain;
+            margin-bottom: 5px;
+            pointer-events: none;
+        }
+        .voca-button .label {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            word-break: break-all;
+            max-height: 25%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .voca-button.empty {
+            border: 2px dashed #bbb;
+            background-color: #fafafa;
+        }
+        .voca-button.empty::after {
+            content: "＋";
+            color: #999;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        /* 5. 編集用モーダルウィンドウ */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 480px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        .modal-content input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 18px;
+            margin: 15px 0;
+            box-sizing: border-box;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+        }
+        .file-input-label {
+            display: inline-block;
+            background: #e1e7ed;
+            padding: 14px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .record-btn {
+            background-color: var(--danger-color);
+            color: white;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 0;
+            width: 100%;
+            font-weight: bold;
+        }
+        .record-btn.ready { background-color: #e67e22; }
+        .record-btn.recording {
+            animation: pulse 1s infinite;
+            background-color: #c0392b;
+        }
+        .listen-btn {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px 0 15px 0;
+            width: 100%;
+            font-weight: bold;
+            display: none;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; }
+        }
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .btn-save { background: var(--success-color); color: white; flex: 1; padding: 14px; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;}
+        .btn-cancel { background: #999; color: white; flex: 1; padding: 14px; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;}
+
+        /* 6. 再生時の画面いっぱい拡大表示用オーバレイ */
+        #zoom-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white;
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        #zoom-overlay.active { display: flex; }
+        #zoom-content {
+            width: 95%;
+            height: 95%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            animation: zoomIn 0.3s forwards;
+        }
+        #zoom-content img {
+            max-width: 90%;
+            max-height: 75%;
+            object-fit: contain;
+        }
+        #zoom-content .zoom-label {
+            font-size: 64px;
+            font-weight: bold;
+            margin-top: 30px;
+            text-align: center;
+        }
+        @keyframes zoomIn {
+            from { transform: scale(0.3); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="screen-main" class="screen active">
+        <header>Simple VOCA App</header>
+        <div class="screen-content">
+            <div class="menu-container">
+                <div class="menu-icon menu-icon-create" onclick="changeScreen('screen-settings')">
+                    <h2>［コミュニケーションボードを作る］</h2>
+                    <p>あたらしくマスえらびからはじめる</p>
+                </div>
+                <div class="menu-icon menu-icon-play" onclick="startPlaybackMode()">
+                    <h2>［作成済みコミュニケーションボード］</h2>
+                    <p>保存したボードをつかう</p>
+                </div>
+                <div class="menu-icon menu-icon-edit" onclick="startEditExistingBoard()">
+                    <h2>［作成済みボードを編集する］</h2>
+                    <p>保存してあるボードの中身をなおす</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-settings" class="screen">
+        <header><button class="back-btn" onclick="changeScreen('screen-main')">もどる</button>設定</header>
+        <div class="screen-content">
+            <div class="settings-box">
+                <h3>マスの数を選んでください</h3>
+                <div class="select-group">
+                    <label>よこ（列）:
+                        <select id="select-cols">
+                            <option value="1">1</option><option value="2" selected>2</option>
+                            <option value="3">3</option><option value="4">4</option>
+                            <option value="5">5</option><option value="6">6</option>
+                        </select>
+                    </label>
+                    <label>たて（行）:
+                        <select id="select-rows">
+                            <option value="1">1</option><option value="2" selected>2</option>
+                            <option value="3">3</option><option value="4">4</option>
+                            <option value="5">5</option><option value="6">6</option>
+                        </select>
+                    </label>
+                </div>
+                <button class="btn-large" onclick="generateGrid()">ボードを作成する</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-edit" class="screen">
+        <header>
+            <button class="back-btn" onclick="abortEdit()">やめる</button>
+            ボタンを編集してください
+            <button class="back-btn" style="left:auto; right:20px; background-color:var(--success-color)!important;" onclick="saveFullBoard()">かんせい（保存）</button>
+        </header>
+        <div class="screen-content">
+            <div id="edit-grid-container" class="grid-container"></div>
+        </div>
+    </div>
+
+    <div id="screen-play" class="screen">
+        <header><button class="back-btn" onclick="changeScreen('screen-main')">もどる</button>コミュニケーションボード</header>
+        <div class="screen-content">
+            <div id="play-grid-container" class="grid-container"></div>
+        </div>
+    </div>
+
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <h3>ボタンの設定</h3>
+            <label class="file-input-label">
+                📷 写真をえらぶ / カメラで撮る
+                <input type="file" id="modal-file" accept="image/*" style="display:none;" onchange="previewImage(this)">
+            </label>
+            <div id="modal-img-preview" style="height:120px; margin-bottom:15px; display:none; justify-content:center; align-items:center;">
+                <img id="preview-tag" src="" style="max-height:100%; max-width:100%;">
+            </div>
+            
+            <input type="text" id="modal-text" placeholder="ボタンのことば（なまえ）">
+            
+            <button id="modal-record-btn" class="record-btn" onclick="handleRecordClick()">🎤 マイクの使用を許可する</button>
+            <div id="record-status" style="color:var(--danger-color); font-weight:bold; margin-bottom:5px; font-size:14px;"></div>
+            
+            <button id="modal-listen-btn" class="listen-btn" onclick="previewAudio()">▶ 録音をきく（試し聞き）</button>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+                <button class="btn-save" onclick="applyButtonChanges()">決定</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="zoom-overlay" onclick="closeZoom()">
+        <div id="zoom-content">
+            <img id="zoom-img" src="">
+            <div id="zoom-label" class="zoom-label"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentBoard = { rows: 2, cols: 2, buttons: {} };
+        let activeEditIndex = null;
+        let tempImgData = null;
+        let tempAudioData = null;
+        let editCancelToMain = false;
+
+        let sharedStream = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordState = 'unauthorized';
+
+        // 【修正箇所】HTML要素がすべて読み込まれてから最初の画面を確定させる安全な仕組み
+        window.onload = function() {
+            changeScreen('screen-main');
+        };
+
+        function changeScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            const targetScreen = document.getElementById(screenId);
+            if (targetScreen) {
+                targetScreen.classList.add('active');
+            }
+        }
+
+        function generateGrid() {
+            const rows = parseInt(document.getElementById('select-rows').value);
+            const cols = parseInt(document.getElementById('select-cols').value);
+            currentBoard = { rows: rows, cols: cols, buttons: {} };
+            editCancelToMain = false;
+            renderEditGrid();
+            changeScreen('screen-edit');
+        }
+
+        function renderEditGrid() {
+            const container = document.getElementById('edit-grid-container');
+            if(!container) return;
+            container.innerHTML = '';
+            container.style.gridTemplateColumns = `repeat(${currentBoard.cols}, 1fr)`;
+            container.style.gridTemplateRows = `repeat(${currentBoard.rows}, 1fr)`;
+            
+            const maxDimension = Math.max(currentBoard.rows, currentBoard.cols);
+            let dynamicFontSize = '24px';
+            if (maxDimension >= 5) dynamicFontSize = '15px';
+            else if (maxDimension >= 3) dynamicFontSize = '20px';
+
+            const totalCells = currentBoard.rows * currentBoard.cols;
+            for(let i=0; i<totalCells; i++) {
+                const btn = document.createElement('div');
+                btn.dataset.index = i;
+                btn.onclick = () => openModal(i);
+                
+                const bData = currentBoard.buttons[i];
+                if(bData) {
+                    btn.className = 'voca-button';
+                    if(bData.img) {
+                        const img = document.createElement('img');
+                        img.src = bData.img;
+                        btn.appendChild(img);
+                    }
+                    if(bData.text) {
+                        const lbl = document.createElement('div');
+                        lbl.className = 'label';
+                        lbl.style.fontSize = dynamicFontSize;
+                        lbl.innerText = bData.text;
+                        btn.appendChild(lbl);
+                    }
+                } else {
+                    btn.className = 'voca-button empty';
+                }
+                container.appendChild(btn);
+            }
+        }
+
+        function abortEdit() {
+            if(editCancelToMain) {
+                changeScreen('screen-main');
+            } else {
+                changeScreen('screen-settings');
+            }
+        }
+
+        /* --- モーダル制御と写真・録音ロジック --- */
+        function openModal(index) {
+            activeEditIndex = index;
+            tempImgData = null;
+            tempAudioData = null;
+            
+            document.getElementById('modal-text').value = '';
+            document.getElementById('modal-file').value = '';
+            document.getElementById('modal-img-preview').style.display = 'none';
+            document.getElementById('record-status').innerText = '';
+            document.getElementById('modal-listen-btn').style.display = 'none';
+            
+            const recordBtn = document.getElementById('modal-record-btn');
+            if (sharedStream && sharedStream.active) {
+                recordState = 'ready';
+                recordBtn.innerText = "🔴 録音をはじめる";
+                recordBtn.className = "record-btn ready";
+            } else {
+                recordState = 'unauthorized';
+                recordBtn.innerText = "🎤 マイクの使用を許可する";
+                recordBtn.className = "record-btn";
+            }
+            
+            if(currentBoard.buttons[index]) {
+                const data = currentBoard.buttons[index];
+                document.getElementById('modal-text').value = data.text || '';
+                if(data.img) {
+                    document.getElementById('modal-img-preview').style.display = 'flex';
+                    document.getElementById('preview-tag').src = data.img;
+                    tempImgData = data.img;
+                }
+                if(data.audio) {
+                    tempAudioData = data.audio;
+                    document.getElementById('modal-listen-btn').style.display = 'block';
+                }
+            }
+            document.getElementById('edit-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            if(recordState === 'recording') {
+                stopRecordingAction();
+            }
+            document.getElementById('edit-modal').classList.remove('active');
+        }
+
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('modal-img-preview').style.display = 'flex';
+                    document.getElementById('preview-tag').src = e.target.result;
+                    tempImgData = e.target.result;
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        async function handleRecordClick() {
+            const btn = document.getElementById('modal-record-btn');
+            const status = document.getElementById('record-status');
+            const listenBtn = document.getElementById('modal-listen-btn');
+
+            if (recordState === 'unauthorized') {
+                try {
+                    sharedStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    recordState = 'ready';
+                    btn.innerText = "🔴 録音をはじめる";
+                    btn.className = "record-btn ready";
+                    status.innerText = "マイク利用が許可されました。";
+                    status.style.color = "var(--success-color)";
+                } catch (err) {
+                    alert("マイクの使用が許可されませんでした。");
+                }
+            } 
+            else if (recordState === 'ready') {
+                audioChunks = [];
+                if (!sharedStream || !sharedStream.active) {
+                    sharedStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                }
+                
+                mediaRecorder = new MediaRecorder(sharedStream);
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                    const reader = new FileReader();
+                    reader.onloadend = () => { 
+                        tempAudioData = reader.result; 
+                        listenBtn.style.display = 'block';
+                    };
+                    reader.readAsDataURL(audioBlob);
+                    status.innerText = "🔊 録音完了（保存可能です）";
+                    status.style.color = "var(--success-color)";
+                };
+
+                mediaRecorder.start();
+                recordState = 'recording';
+                btn.innerText = "⏹ 録音をストップする";
+                btn.className = "record-btn recording";
+                status.innerText = "🔴 録音中...";
+                status.style.color = "var(--danger-color)";
+                listenBtn.style.display = 'none';
+            } 
+            else if (recordState === 'recording') {
+                stopRecordingAction();
+            }
+        }
+
+        function stopRecordingAction() {
+            const btn = document.getElementById('modal-record-btn');
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            recordState = 'ready';
+            btn.innerText = "🔴 録音をはじめる";
+            btn.className = "record-btn ready";
+        }
+
+        function previewAudio() {
+            if (tempAudioData) {
+                const audio = new Audio(tempAudioData);
+                audio.play().catch(e => console.log("再生エラー: " + e.message));
+            }
+        }
+
+        function applyButtonChanges() {
+            const text = document.getElementById('modal-text').value;
+            if(text || tempImgData || tempAudioData) {
+                currentBoard.buttons[activeEditIndex] = {
+                    text: text,
+                    img: tempImgData,
+                    audio: tempAudioData
+                };
+            } else {
+                delete currentBoard.buttons[activeEditIndex];
+            }
+            renderEditGrid();
+            closeModal();
+        }
+
+        function saveFullBoard() {
+            localStorage.setItem('saved_voca_board', JSON.stringify(currentBoard));
+            alert("ボードを保存しました！");
+            changeScreen('screen-main');
+        }
+
+        /* --- 再生モード処理 --- */
+        function startPlaybackMode() {
+            const saved = localStorage.getItem('saved_voca_board');
+            if(!saved) {
+                alert("作成済みのボードがありません。さきに「コミュニケーションボードを作る」から作成してください。");
+                return;
+            }
+            
+            currentBoard = JSON.parse(saved);
+            const container = document.getElementById('play-grid-container');
+            if(!container) return;
+            container.innerHTML = '';
+            container.style.gridTemplateColumns = `repeat(${currentBoard.cols}, 1fr)`;
+            container.style.gridTemplateRows = `repeat(${currentBoard.rows}, 1fr)`;
+
+            const maxDimension = Math.max(currentBoard.rows, currentBoard.cols);
+            let dynamicFontSize = '24px';
+            if (maxDimension >= 5) dynamicFontSize = '15px';
+            else if (maxDimension >= 3) dynamicFontSize = '20px';
+
+            const totalCells = currentBoard.rows * currentBoard.cols;
+            for(let i=0; i<totalCells; i++) {
+                const bData = currentBoard.buttons[i];
+                const btn = document.createElement('div');
+                btn.className = 'voca-button';
+                
+                if(bData) {
+                    if(bData.img) {
+                        const img = document.createElement('img');
+                        img.src = bData.img;
+                        btn.appendChild(img);
+                    }
+                    if(bData.text) {
+                        const lbl = document.createElement('div');
+                        lbl.className = 'label';
+                        lbl.style.fontSize = dynamicFontSize;
+                        lbl.innerText = bData.text;
+                        btn.appendChild(lbl);
+                    }
+                    btn.onclick = () => playAndZoom(bData);
+                } else {
+                    btn.style.visibility = 'hidden';
+                }
+                container.appendChild(btn);
+            }
+            changeScreen('screen-play');
+        }
+
+        function startEditExistingBoard() {
+            const saved = localStorage.getItem('saved_voca_board');
+            if(!saved) {
+                alert("保存されたボードがありません。");
+                return;
+            }
+            currentBoard = JSON.parse(saved);
+            editCancelToMain = true;
+            renderEditGrid();
+            changeScreen('screen-edit');
+        }
+
+        function playAndZoom(buttonData) {
+            const overlay = document.getElementById('zoom-overlay');
+            const zImg = document.getElementById('zoom-img');
+            const zLbl = document.getElementById('zoom-label');
+
+            zImg.src = buttonData.img || '';
+            zImg.style.display = buttonData.img ? 'block' : 'none';
+            zLbl.innerText = buttonData.text || '';
+            overlay.classList.add('active');
+
+            if(buttonData.audio) {
+                const audio = new Audio(buttonData.audio);
+                audio.play().catch(e => console.log("音声再生失敗: " + e.message));
+            }
+        }
+
+        function closeZoom() {
+            document.getElementById('zoom-overlay').classList.remove('active');
+        }
+    </script>
+</body>
+</html>
