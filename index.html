@@ -645,4 +645,380 @@
                 renameBtn.className = 'board-rename-btn';
                 renameBtn.innerText = "✏️ 名前変更";
                 renameBtn.onclick = (e) => {
-                    e.
+                    e.stopPropagation();
+                    openRenameModal(key);
+                };
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'board-delete-btn';
+                deleteBtn.innerText = "🗑 削除";
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    if (confirm(`「${key}」のボードを完全に消してもよろしいですか？`)) {
+                        delete allBoards[key];
+                        localStorage.setItem('saved_voca_all_boards', JSON.stringify(allBoards));
+                        renderBoardList();
+                    }
+                };
+
+                itemRow.appendChild(selectBtn);
+                itemRow.appendChild(renameBtn);
+                itemRow.appendChild(deleteBtn);
+                container.appendChild(itemRow);
+            });
+        }
+
+        function openRenameModal(key) {
+            renameTargetKey = key;
+            const inputField = document.getElementById('board-rename-input');
+            inputField.value = key;
+            document.getElementById('rename-modal').classList.add('active');
+        }
+
+        function closeRenameModal() {
+            document.getElementById('rename-modal').classList.remove('active');
+            renameTargetKey = null;
+        }
+
+        function applyBoardRename() {
+            const inputField = document.getElementById('board-rename-input');
+            const newName = inputField.value.trim();
+
+            if (!newName) {
+                alert("名前が空欄です。入力をしてください。");
+                return;
+            }
+            if (newName === renameTargetKey) {
+                closeRenameModal();
+                return;
+            }
+            if (allBoards[newName]) {
+                alert(`「${newName}」はすでに他のボードで使用されています。別の名前をつけてください。`);
+                return;
+            }
+
+            const updatedBoards = {};
+            Object.keys(allBoards).forEach(k => {
+                if (k === renameTargetKey) {
+                    updatedBoards[newName] = allBoards[renameTargetKey];
+                } else {
+                    updatedBoards[k] = allBoards[k];
+                }
+            });
+
+            allBoards = updatedBoards;
+            localStorage.setItem('saved_voca_all_boards', JSON.stringify(allBoards));
+            
+            closeRenameModal();
+            renderBoardList();
+        }
+
+        function handleBoardSelect(key) {
+            currentBoardKey = key;
+            currentBoard = JSON.parse(JSON.stringify(allBoards[key]));
+
+            if (selectMode === 'play') {
+                startPlaybackMode();
+            } else {
+                renderEditGrid();
+                changeScreen('screen-edit');
+            }
+        }
+
+        function returnToSelectScreen() {
+            openBoardSelect(selectMode);
+        }
+
+        function generateGrid() {
+            const rows = parseInt(document.getElementById('select-rows').value);
+            const cols = parseInt(document.getElementById('select-cols').value);
+            currentBoard = { rows: rows, cols: cols, buttons: {} };
+            currentBoardKey = null;
+            renderEditGrid();
+            changeScreen('screen-edit');
+        }
+
+        function renderEditGrid() {
+            const container = document.getElementById('edit-grid-container');
+            if(!container) return;
+            container.innerHTML = '';
+            container.style.gridTemplateColumns = `repeat(${currentBoard.cols}, 1fr)`;
+            container.style.gridTemplateRows = `repeat(${currentBoard.rows}, 1fr)`;
+            
+            const maxDimension = Math.max(currentBoard.rows, currentBoard.cols);
+            const totalCells = currentBoard.rows * currentBoard.cols;
+            let dynamicFontSize = '24px';
+            if (totalCells > 16) dynamicFontSize = '14px';
+            else if (totalCells > 8) dynamicFontSize = '18px';
+            else if (maxDimension >= 3) dynamicFontSize = '20px';
+
+            for(let i=0; i<totalCells; i++) {
+                const btn = document.createElement('div');
+                btn.dataset.index = i;
+                btn.onclick = () => openModal(i);
+                
+                const bData = currentBoard.buttons[i];
+                if(bData) {
+                    btn.className = 'voca-button';
+                    if(bData.img) {
+                        const img = document.createElement('img');
+                        img.src = bData.img;
+                        btn.appendChild(img);
+                    }
+                    if(bData.text) {
+                        const lbl = document.createElement('div');
+                        lbl.className = 'label';
+                        lbl.style.fontSize = dynamicFontSize;
+                        lbl.innerText = bData.text;
+                        btn.appendChild(lbl);
+                    }
+                } else {
+                    btn.className = 'voca-button empty';
+                }
+                container.appendChild(btn);
+            }
+        }
+
+        function abortEdit() {
+            if (currentBoardKey) {
+                openBoardSelect('edit');
+            } else {
+                changeScreen('screen-settings');
+            }
+        }
+
+        function openSaveNameModal() {
+            const nameInput = document.getElementById('board-name-input');
+            nameInput.value = currentBoardKey ? currentBoardKey : '';
+            document.getElementById('name-modal').classList.add('active');
+        }
+
+        function closeNameModal() {
+            document.getElementById('name-modal').classList.remove('active');
+        }
+
+        function saveFullBoardWithTitle() {
+            const nameInput = document.getElementById('board-name-input');
+            const boardName = nameInput.value.trim();
+
+            if (!boardName) {
+                alert("名前が入力されていません。ボードに名前をつけてください。");
+                return;
+            }
+
+            allBoards[boardName] = currentBoard;
+            localStorage.setItem('saved_voca_all_boards', JSON.stringify(allBoards));
+            
+            alert(`ボード「${boardName}」を保存しました！`);
+            closeNameModal();
+            changeScreen('screen-main');
+        }
+
+        function startPlaybackMode() {
+            document.getElementById('play-screen-title').innerText = currentBoardKey;
+            const container = document.getElementById('play-grid-container');
+            if(!container) return;
+            container.innerHTML = '';
+            container.style.gridTemplateColumns = `repeat(${currentBoard.cols}, 1fr)`;
+            container.style.gridTemplateRows = `repeat(${currentBoard.rows}, 1fr)`;
+
+            const totalCells = currentBoard.rows * currentBoard.cols;
+            let dynamicFontSize = '24px';
+            if (totalCells > 16) dynamicFontSize = '14px';
+            else if (totalCells > 8) dynamicFontSize = '18px';
+            else if (Math.max(currentBoard.rows, currentBoard.cols) >= 3) dynamicFontSize = '20px';
+
+            for(let i=0; i<totalCells; i++) {
+                const bData = currentBoard.buttons[i];
+                const btn = document.createElement('div');
+                btn.className = 'voca-button';
+                
+                if(bData) {
+                    if(bData.img) {
+                        const img = document.createElement('img');
+                        img.src = bData.img;
+                        btn.appendChild(img);
+                    }
+                    if(bData.text) {
+                        const lbl = document.createElement('div');
+                        lbl.className = 'label';
+                        lbl.style.fontSize = dynamicFontSize;
+                        lbl.innerText = bData.text;
+                        btn.appendChild(lbl);
+                    }
+                    btn.onclick = () => playAndZoom(bData);
+                } else {
+                    btn.style.visibility = 'hidden';
+                }
+                container.appendChild(btn);
+            }
+            changeScreen('screen-play');
+        }
+
+        function openModal(index) {
+            activeEditIndex = index;
+            tempImgData = null;
+            tempAudioData = null;
+            
+            document.getElementById('modal-text').value = '';
+            document.getElementById('modal-file').value = '';
+            document.getElementById('modal-img-preview').style.display = 'none';
+            document.getElementById('record-status').innerText = '';
+            document.getElementById('modal-listen-btn').style.display = 'none';
+            
+            const recordBtn = document.getElementById('modal-record-btn');
+            if (sharedStream && sharedStream.active) {
+                recordState = 'ready';
+                recordBtn.innerText = "🔴 録音をはじめる";
+                recordBtn.className = "record-btn ready";
+            } else {
+                recordState = 'unauthorized';
+                recordBtn.innerText = "🎤 マイクの使用を許可する";
+                recordBtn.className = "record-btn";
+            }
+            
+            if(currentBoard.buttons[index]) {
+                const data = currentBoard.buttons[index];
+                document.getElementById('modal-text').value = data.text || '';
+                if(data.img) {
+                    document.getElementById('modal-img-preview').style.display = 'flex';
+                    document.getElementById('preview-tag').src = data.img;
+                    tempImgData = data.img;
+                }
+                if(data.audio) {
+                    tempAudioData = data.audio;
+                    document.getElementById('modal-listen-btn').style.display = 'block';
+                }
+            }
+            document.getElementById('edit-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            if(recordState === 'recording') { stopRecordingAction(); }
+            document.getElementById('edit-modal').classList.remove('active');
+        }
+
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('modal-img-preview').style.display = 'flex';
+                    document.getElementById('preview-tag').src = e.target.result;
+                    tempImgData = e.target.result;
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        async function handleRecordClick() {
+            const btn = document.getElementById('modal-record-btn');
+            const status = document.getElementById('record-status');
+            const listenBtn = document.getElementById('modal-listen-btn');
+
+            if (recordState === 'unauthorized') {
+                try {
+                    sharedStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    recordState = 'ready';
+                    btn.innerText = "🔴 録音をはじめる";
+                    btn.className = "record-btn ready";
+                    status.innerText = "マイク利用が許可されました。";
+                    status.style.color = "var(--success-color)";
+                } catch (err) {
+                    alert("マイクの使用が許可されませんでした。");
+                }
+            } 
+            else if (recordState === 'ready') {
+                audioChunks = [];
+                if (!sharedStream || !sharedStream.active) {
+                    sharedStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                }
+                
+                mediaRecorder = new MediaRecorder(sharedStream);
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                    const reader = new FileReader();
+                    reader.onloadend = () => { 
+                        tempAudioData = reader.result; 
+                        listenBtn.style.display = 'block';
+                    };
+                    reader.readAsDataURL(audioBlob);
+                    status.innerText = "🔊 録音完了（保存可能です）";
+                    status.style.color = "var(--success-color)";
+                };
+
+                mediaRecorder.start();
+                recordState = 'recording';
+                btn.innerText = "⏹ 録音をストップする";
+                btn.className = "record-btn recording";
+                status.innerText = "🔴 録音中...";
+                status.style.color = "var(--danger-color)";
+                listenBtn.style.display = 'none';
+            } 
+            else if (recordState === 'recording') {
+                stopRecordingAction();
+            }
+        }
+
+        function stopRecordingAction() {
+            const btn = document.getElementById('modal-record-btn');
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') { mediaRecorder.stop(); }
+            recordState = 'ready';
+            btn.innerText = "🔴 録音をはじめる";
+            btn.className = "record-btn ready";
+        }
+
+        function previewAudio() {
+            if (tempAudioData) {
+                const audio = new Audio(tempAudioData);
+                audio.play().catch(e => console.log("再生エラー: " + e.message));
+            }
+        }
+
+        function applyButtonChanges() {
+            const text = document.getElementById('modal-text').value;
+            if(text || tempImgData || tempAudioData) {
+                currentBoard.buttons[activeEditIndex] = {
+                    text: text,
+                    img: tempImgData,
+                    audio: tempAudioData
+                };
+            } else {
+                delete currentBoard.buttons[activeEditIndex];
+            }
+            renderEditGrid();
+            closeModal();
+        }
+
+        function playAndZoom(buttonData) {
+            if (isAudioPlaying) return;
+
+            const overlay = document.getElementById('zoom-overlay');
+            const zImg = document.getElementById('zoom-img');
+            const zLbl = document.getElementById('zoom-label');
+
+            zImg.src = buttonData.img || '';
+            zImg.style.display = buttonData.img ? 'block' : 'none';
+            zLbl.innerText = buttonData.text || '';
+            overlay.classList.add('active');
+
+            if(buttonData.audio) {
+                isAudioPlaying = true;
+                const audio = new Audio(buttonData.audio);
+                audio.onended = function() { isAudioPlaying = false; };
+                audio.play().catch(e => {
+                    console.log("音声再生失敗: " + e.message);
+                    isAudioPlaying = false;
+                });
+            } else {
+                isAudioPlaying = false;
+            }
+        }
+
+        function closeZoom() {
+            if (isAudioPlaying) return;
+            document.getElementById('zoom-overlay').classList.remove('active');
+        }
+    </script>
+</body>
+</html>
