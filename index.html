@@ -43,6 +43,11 @@
             display: block;
             width: 100%;
             box-sizing: border-box;
+            
+            /* 【追加】子要素の重なり順を綺麗に制御するための設定 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         
         /* もどる・操作ボタンのスタイル */
@@ -61,6 +66,7 @@
             display: inline-block !important;
             visibility: visible !important;
             opacity: 1 !important;
+            z-index: 2; /* 【追加】タイトル文字列より確実に前面に出す */
         }
         .back-btn:hover {
             background-color: #333333 !important;
@@ -136,7 +142,7 @@
         .menu-icon p { 
             margin: 0; 
             color: #666; 
-            font-size: 15px;
+            font-size: 15px; 
             font-weight: bold;
             word-break: break-all;
         }
@@ -359,6 +365,36 @@
             from { transform: scale(0.3); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
         }
+
+        /* ───【今回の修正・追加コードはここから】─── */
+        /* スマートフォンの縦向き（画面幅が狭い環境）用の自動縮小調整 */
+        @media screen and (max-width: 480px) {
+            header {
+                /* ボタンに挟まれても文字がはみ出さないように、左右に余白を確保 */
+                padding-left: 100px !important;
+                padding-right: 100px !important;
+                
+                /* 画面幅（vw）に合わせて文字サイズを流動的に自動縮小 */
+                font-size: 4.5vw !important;
+                
+                /* 長い文字列でも2行にラップさせず、ボタンの手前で綺麗に収める */
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                
+                /* 高さと中央揃えの維持 */
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            /* 「編集画面」など、左右両方にボタンがある特殊なパターンのヘッダー個別調整 */
+            #screen-edit header {
+                padding-left: 100px !important;
+                padding-right: 160px !important; /* 右側の「かんせい（保存）」ボタンが長いため、右の余白を多めに確保 */
+            }
+        }
+        /* ───【今回の修正・追加コードはここまで】─── */
     </style>
 </head>
 <body>
