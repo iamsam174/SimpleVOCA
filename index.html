@@ -176,7 +176,6 @@
             background-color: #fdfdfd;
             border-color: #bbb;
         }
-        /* 【新設】名前変更ボタンのスタイル */
         .board-rename-btn {
             background-color: var(--warning-color);
             color: white;
@@ -567,7 +566,7 @@
         let tempImgData = null;
         let tempAudioData = null;
         let selectMode = 'play';
-        let renameTargetKey = null; // 名前変更の対象を保持する変数
+        let renameTargetKey = null;
 
         let sharedStream = null;
         let mediaRecorder = null;
@@ -619,7 +618,6 @@
             changeScreen('screen-select-board');
         }
 
-        // リスト描画：名前変更（✏️）ボタンを新規追加
         function renderBoardList() {
             const container = document.getElementById('select-board-list');
             if (!container) return;
@@ -638,22 +636,13 @@
                 const itemRow = document.createElement('div');
                 itemRow.className = 'board-list-item';
 
-                // ボード選択メインボタン
                 const selectBtn = document.createElement('button');
                 selectBtn.className = 'board-select-btn';
                 selectBtn.innerText = `📋 ${key} （${allBoards[key].cols}✕${allBoards[key].rows}マス）`;
                 selectBtn.onclick = () => handleBoardSelect(key);
 
-                // 【新設】名前変更ボタン
                 const renameBtn = document.createElement('button');
                 renameBtn.className = 'board-rename-btn';
                 renameBtn.innerText = "✏️ 名前変更";
                 renameBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    openRenameModal(key);
-                };
-
-                // 削除ボタン
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'board-delete-btn';
-                deleteBtn.innerText =
+                    e.
