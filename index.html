@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Simple VOCA App v1.0.2</title>
+    <title>Simple VOCA App v1.1.0</title>
     <style>
         :root {
             --bg-color: #f4f6f9;
@@ -43,11 +43,6 @@
             display: block;
             width: 100%;
             box-sizing: border-box;
-            
-            /* 【追加】子要素の重なり順を綺麗に制御するための設定 */
-            display: flex;
-            justify-content: center;
-            align-items: center;
         }
         
         /* もどる・操作ボタンのスタイル */
@@ -66,7 +61,6 @@
             display: inline-block !important;
             visibility: visible !important;
             opacity: 1 !important;
-            z-index: 2; /* 【追加】タイトル文字列より確実に前面に出す */
         }
         .back-btn:hover {
             background-color: #333333 !important;
@@ -97,7 +91,7 @@
             overflow: hidden;
         }
         
-        /* 1. 起動画面のメニューレイアウト（iPhone向け調整済） */
+        /* 1. 起動画面のメニューレイアウト */
         .menu-container {
             display: flex;
             flex-direction: column;
@@ -135,16 +129,71 @@
             white-space: nowrap;
         }
         @media screen and (min-width: 460px) {
-            .menu-icon h2 {
-                font-size: 22px;
-            }
+            .menu-icon h2 { font-size: 22px; }
         }
         .menu-icon p { 
             margin: 0; 
             color: #666; 
-            font-size: 15px; 
+            font-size: 15px;
             font-weight: bold;
-            word-break: break-all;
+        }
+
+        /* 【新設】ボード選択画面のリストスタイル */
+        .select-board-container {
+            width: 100%;
+            max-width: 600px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto; /* 縦スクロール可能に */
+            padding-right: 5px;
+            box-sizing: border-box;
+            justify-content: flex-start;
+        }
+        .board-list-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+        .board-select-btn {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            font-size: 22px;
+            font-weight: bold;
+            border-radius: 16px;
+            border: 2px solid #ddd;
+            text-align: left;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .board-select-btn:hover {
+            background-color: #fdfdfd;
+            border-color: #bbb;
+        }
+        .board-delete-btn {
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            padding: 20px;
+            font-size: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+        .no-board-msg {
+            font-size: 20px;
+            color: #7f8c8d;
+            text-align: center;
+            margin-top: 40px;
+            font-weight: bold;
+            width: 100%;
         }
 
         /* 2. 設定画面のボックス */
@@ -237,7 +286,7 @@
             font-weight: bold;
         }
 
-        /* 5. 編集用モーダルウィンドウ */
+        /* 5. 編集用モーダルウィンドウ / 【拡張】名前保存用ポップアップ共通 */
         .modal {
             display: none;
             position: fixed;
@@ -324,7 +373,7 @@
         .btn-save { background: var(--success-color); color: white; flex: 1; padding: 14px; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;}
         .btn-cancel { background: #999; color: white; flex: 1; padding: 14px; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;}
 
-        /* 6. 再生時の画面いっぱい拡大表示用オーバレイ（v1.0.1 さらに大きく調整） */
+        /* 6. 再生時の画面いっぱい拡大表示用オーバレイ */
         #zoom-overlay {
             display: none;
             position: fixed;
@@ -357,65 +406,41 @@
             text-align: center;
         }
         @media screen and (max-width: 768px) {
-            #zoom-content .zoom-label {
-                font-size: 50px;
-            }
+            #zoom-content .zoom-label { font-size: 50px; }
         }
         @keyframes zoomIn {
             from { transform: scale(0.3); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
         }
-
-        /* ───【今回の修正・追加コードはここから】─── */
-        /* スマートフォンの縦向き（画面幅が狭い環境）用の自動縮小調整 */
-        @media screen and (max-width: 480px) {
-            header {
-                /* ボタンに挟まれても文字がはみ出さないように、左右に余白を確保 */
-                padding-left: 100px !important;
-                padding-right: 100px !important;
-                
-                /* 画面幅（vw）に合わせて文字サイズを流動的に自動縮小 */
-                font-size: 4.5vw !important;
-                
-                /* 長い文字列でも2行にラップさせず、ボタンの手前で綺麗に収める */
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                
-                /* 高さと中央揃えの維持 */
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            
-            /* 「編集画面」など、左右両方にボタンがある特殊なパターンのヘッダー個別調整 */
-            #screen-edit header {
-                padding-left: 100px !important;
-                padding-right: 160px !important; /* 右側の「かんせい（保存）」ボタンが長いため、右の余白を多めに確保 */
-            }
-        }
-        /* ───【今回の修正・追加コードはここまで】─── */
     </style>
 </head>
 <body>
 
     <div id="screen-main" class="screen active">
-        <header>Simple VOCA App v1.0.2</header>
+        <header>Simple VOCA App v1.1.0</header>
         <div class="screen-content">
             <div class="menu-container">
                 <div class="menu-icon menu-icon-create" onclick="changeScreen('screen-settings')">
                     <h2>［コミュニケーションボードを作る］</h2>
                     <p>新しくマス選びから始める</p>
                 </div>
-                <div class="menu-icon menu-icon-play" onclick="startPlaybackMode()">
+                <div class="menu-icon menu-icon-play" onclick="openBoardSelect('play')">
                     <h2>［作成済みコミュニケーションボード］</h2>
-                    <p>保存したボードを使う</p>
+                    <p>保存したボードを切り替えて使う</p>
                 </div>
-                <div class="menu-icon menu-icon-edit" onclick="startEditExistingBoard()">
+                <div class="menu-icon menu-icon-edit" onclick="openBoardSelect('edit')">
                     <h2>［作成済みボードを編集する］</h2>
                     <p>保存してあるボードの中身を変える</p>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div id="screen-select-board" class="screen">
+        <header><button class="back-btn" onclick="changeScreen('screen-main')">もどる</button><span id="select-screen-title">ボードをえらぶ</span></header>
+        <div class="screen-content">
+            <div id="select-board-list" class="select-board-container">
+                </div>
         </div>
     </div>
 
@@ -428,7 +453,7 @@
                     <label>よこ（列）:
                         <select id="select-cols">
                             <option value="1">1</option><option value="2" selected>2</option>
-                            <option value="3">3</option><option value="4">4</option>
+                            <option value="3">3</option><option value="4" selected>4</option>
                             <option value="5">5</option><option value="6">6</option>
                         </select>
                     </label>
@@ -436,7 +461,7 @@
                         <select id="select-rows">
                             <option value="1">1</option><option value="2" selected>2</option>
                             <option value="3">3</option><option value="4">4</option>
-                            <option value="5">5</option><option value="6">6</option>
+                            <option value="5" selected>5</option><option value="6">6</option>
                         </select>
                     </label>
                 </div>
@@ -449,7 +474,7 @@
         <header>
             <button class="back-btn" onclick="abortEdit()">やめる</button>
             ボタンを編集してください
-            <button class="back-btn" style="left:auto; right:20px; background-color:var(--success-color)!important;" onclick="saveFullBoard()">かんせい（保存）</button>
+            <button class="back-btn" style="left:auto; right:20px; background-color:var(--success-color)!important;" onclick="openSaveNameModal()">かんせい（保存）</button>
         </header>
         <div class="screen-content">
             <div id="edit-grid-container" class="grid-container"></div>
@@ -457,7 +482,7 @@
     </div>
 
     <div id="screen-play" class="screen">
-        <header><button class="back-btn" onclick="changeScreen('screen-main')">もどる</button>コミュニケーションボード</header>
+        <header><button class="back-btn" onclick="returnToSelectScreen()">リストへもどる</button><span id="play-screen-title">コミュニケーションボード</span></header>
         <div class="screen-content">
             <div id="play-grid-container" class="grid-container"></div>
         </div>
@@ -490,6 +515,18 @@
         </div>
     </div>
 
+    <div id="name-modal" class="modal">
+        <div class="modal-content">
+            <h3>ボードのなまえ保存</h3>
+            <p style="font-weight: bold; color: #555;">このボードの名前（シチュエーション）を入力してください</p>
+            <input type="text" id="board-name-input" placeholder="例：あさの会、きゅうしょく、おやつ">
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeNameModal()">もどる</button>
+                <button class="btn-save" onclick="saveFullBoardWithTitle()">保存する</button>
+            </div>
+        </div>
+    </div>
+
     <div id="zoom-overlay" onclick="closeZoom()">
         <div id="zoom-content">
             <img id="zoom-img" src="">
@@ -498,11 +535,14 @@
     </div>
 
     <script>
+        // データ構造の変更：複数のボードをまとめて格納するオブジェクト
+        let allBoards = {};
         let currentBoard = { rows: 2, cols: 2, buttons: {} };
+        let currentBoardKey = null; // 現在開いているボードの名前
         let activeEditIndex = null;
         let tempImgData = null;
         let tempAudioData = null;
-        let editCancelToMain = false;
+        let selectMode = 'play'; // 'play' または 'edit'
 
         let sharedStream = null;
         let mediaRecorder = null;
@@ -511,6 +551,7 @@
         let isAudioPlaying = false;
 
         window.onload = function() {
+            loadAllBoardsFromStorage();
             changeScreen('screen-main');
         };
 
@@ -522,11 +563,107 @@
             }
         }
 
+        // ストレージから全ボードデータをロード
+        function loadAllBoardsFromStorage() {
+            const saved = localStorage.getItem('saved_voca_all_boards');
+            if (saved) {
+                allBoards = JSON.parse(saved);
+            } else {
+                // 移行措置：もし古いv1.0.1の単一データが残っていたら救出する
+                const oldSaved = localStorage.getItem('saved_voca_board');
+                if (oldSaved) {
+                    allBoards["復元されたボード"] = JSON.parse(oldSaved);
+                    localStorage.setItem('saved_voca_all_boards', JSON.stringify(allBoards));
+                    localStorage.removeItem('saved_voca_board'); // 古い箱は削除
+                } else {
+                    allBoards = {};
+                }
+            }
+        }
+
+        // ボード選択画面を開く処理（縦ずらりリスト＋削除ボタン）
+        function openBoardSelect(mode) {
+            selectMode = mode;
+            loadAllBoardsFromStorage();
+            
+            const titleSpan = document.getElementById('select-screen-title');
+            if (mode === 'play') {
+                titleSpan.innerText = "つかうボードをえらぶ";
+            } else {
+                titleSpan.innerText = "なおすボードをえらぶ";
+            }
+
+            renderBoardList();
+            changeScreen('screen-select-board');
+        }
+
+        // 選択リストの描画
+        function renderBoardList() {
+            const container = document.getElementById('select-board-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const keys = Object.keys(allBoards);
+            if (keys.length === 0) {
+                const msg = document.createElement('div');
+                msg.className = 'no-board-msg';
+                msg.innerText = "保存されたボードがありません。\n「コミュニケーションボードを作る」から新しく作成してください。";
+                container.appendChild(msg);
+                return;
+            }
+
+            keys.forEach(key => {
+                const itemRow = document.createElement('div');
+                itemRow.className = 'board-list-item';
+
+                // ボード選択ボタン
+                const selectBtn = document.createElement('button');
+                selectBtn.className = 'board-select-btn';
+                selectBtn.innerText = `📋 ${key} （${allBoards[key].cols}✕${allBoards[key].rows}マス）`;
+                selectBtn.onclick = () => handleBoardSelect(key);
+
+                // 削除ボタン（ゴミ箱マーク）
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'board-delete-btn';
+                deleteBtn.innerText = "🗑 削除";
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    if (confirm(`「${key}」のボードを完全に消してもよろしいですか？`)) {
+                        delete allBoards[key];
+                        localStorage.setItem('saved_voca_all_boards', JSON.stringify(allBoards));
+                        renderBoardList(); // リスト再描画
+                    }
+                };
+
+                itemRow.appendChild(selectBtn);
+                itemRow.appendChild(deleteBtn);
+                container.appendChild(itemRow);
+            });
+        }
+
+        // リストから選ばれた時の処理
+        function handleBoardSelect(key) {
+            currentBoardKey = key;
+            currentBoard = JSON.parse(JSON.stringify(allBoards[key])); // ディープコピー
+
+            if (selectMode === 'play') {
+                startPlaybackMode();
+            } else {
+                renderEditGrid();
+                changeScreen('screen-edit');
+            }
+        }
+
+        function returnToSelectScreen() {
+            openBoardSelect(selectMode);
+        }
+
+        // 新規作成
         function generateGrid() {
             const rows = parseInt(document.getElementById('select-rows').value);
             const cols = parseInt(document.getElementById('select-cols').value);
             currentBoard = { rows: rows, cols: cols, buttons: {} };
-            editCancelToMain = false;
+            currentBoardKey = null; // 新規なのでまだ名前はない
             renderEditGrid();
             changeScreen('screen-edit');
         }
@@ -538,12 +675,14 @@
             container.style.gridTemplateColumns = `repeat(${currentBoard.cols}, 1fr)`;
             container.style.gridTemplateRows = `repeat(${currentBoard.rows}, 1fr)`;
             
+            // マス数（最大20マス想定）に応じたきめ細やかな文字サイズ自動調整
             const maxDimension = Math.max(currentBoard.rows, currentBoard.cols);
+            const totalCells = currentBoard.rows * currentBoard.cols;
             let dynamicFontSize = '24px';
-            if (maxDimension >= 5) dynamicFontSize = '15px';
+            if (totalCells > 16) dynamicFontSize = '14px';
+            else if (totalCells > 8) dynamicFontSize = '18px';
             else if (maxDimension >= 3) dynamicFontSize = '20px';
 
-            const totalCells = currentBoard.rows * currentBoard.cols;
             for(let i=0; i<totalCells; i++) {
                 const btn = document.createElement('div');
                 btn.dataset.index = i;
@@ -572,13 +711,87 @@
         }
 
         function abortEdit() {
-            if(editCancelToMain) {
-                changeScreen('screen-main');
+            if (currentBoardKey) {
+                openBoardSelect('edit');
             } else {
                 changeScreen('screen-settings');
             }
         }
 
+        // 保存時に名前を入力させるポップアップ（モーダル）を開く
+        function openSaveNameModal() {
+            const nameInput = document.getElementById('board-name-input');
+            // すでに名前がある編集の場合は、最初からその名前を入れておく
+            nameInput.value = currentBoardKey ? currentBoardKey : '';
+            document.getElementById('name-modal').classList.add('active');
+        }
+
+        function closeNameModal() {
+            document.getElementById('name-modal').classList.remove('active');
+        }
+
+        // 名前を決定して、複数保存の箱（allBoards）に格納する処理
+        function saveFullBoardWithTitle() {
+            const nameInput = document.getElementById('board-name-input');
+            const boardName = nameInput.value.trim();
+
+            if (!boardName) {
+                alert("名前が入力されていません。ボードに名前をつけてください。");
+                return;
+            }
+
+            // 複数格納オブジェクトに名前付きで保存
+            allBoards[boardName] = currentBoard;
+            localStorage.setItem('saved_voca_all_boards', JSON.stringify(allBoards));
+            
+            alert(`ボード「${boardName}」を保存しました！`);
+            closeNameModal();
+            changeScreen('screen-main');
+        }
+
+        // 再生モードの起動
+        function startPlaybackMode() {
+            document.getElementById('play-screen-title').innerText = currentBoardKey;
+            const container = document.getElementById('play-grid-container');
+            if(!container) return;
+            container.innerHTML = '';
+            container.style.gridTemplateColumns = `repeat(${currentBoard.cols}, 1fr)`;
+            container.style.gridTemplateRows = `repeat(${currentBoard.rows}, 1fr)`;
+
+            const totalCells = currentBoard.rows * currentBoard.cols;
+            let dynamicFontSize = '24px';
+            if (totalCells > 16) dynamicFontSize = '14px';
+            else if (totalCells > 8) dynamicFontSize = '18px';
+            else if (Math.max(currentBoard.rows, currentBoard.cols) >= 3) dynamicFontSize = '20px';
+
+            for(let i=0; i<totalCells; i++) {
+                const bData = currentBoard.buttons[i];
+                const btn = document.createElement('div');
+                btn.className = 'voca-button';
+                
+                if(bData) {
+                    if(bData.img) {
+                        const img = document.createElement('img');
+                        img.src = bData.img;
+                        btn.appendChild(img);
+                    }
+                    if(bData.text) {
+                        const lbl = document.createElement('div');
+                        lbl.className = 'label';
+                        lbl.style.fontSize = dynamicFontSize;
+                        lbl.innerText = bData.text;
+                        btn.appendChild(lbl);
+                    }
+                    btn.onclick = () => playAndZoom(bData);
+                } else {
+                    btn.style.visibility = 'hidden'; // 空白マスは非表示に
+                }
+                container.appendChild(btn);
+            }
+            changeScreen('screen-play');
+        }
+
+        // 以下、v1.0.1の安定したカメラ・マイク・ズームロジックを完全踏襲
         function openModal(index) {
             activeEditIndex = index;
             tempImgData = null;
@@ -618,9 +831,7 @@
         }
 
         function closeModal() {
-            if(recordState === 'recording') {
-                stopRecordingAction();
-            }
+            if(recordState === 'recording') { stopRecordingAction(); }
             document.getElementById('edit-modal').classList.remove('active');
         }
 
@@ -688,9 +899,7 @@
 
         function stopRecordingAction() {
             const btn = document.getElementById('modal-record-btn');
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                mediaRecorder.stop();
-            }
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') { mediaRecorder.stop(); }
             recordState = 'ready';
             btn.innerText = "🔴 録音をはじめる";
             btn.className = "record-btn ready";
@@ -718,71 +927,6 @@
             closeModal();
         }
 
-        function saveFullBoard() {
-            localStorage.setItem('saved_voca_board', JSON.stringify(currentBoard));
-            alert("ボードを保存しました！");
-            changeScreen('screen-main');
-        }
-
-        function startPlaybackMode() {
-            const saved = localStorage.getItem('saved_voca_board');
-            if(!saved) {
-                alert("作成済みのボードがありません。さきに「コミュニケーションボードを作る」から作成してください。");
-                return;
-            }
-            
-            currentBoard = JSON.parse(saved);
-            const container = document.getElementById('play-grid-container');
-            if(!container) return;
-            container.innerHTML = '';
-            container.style.gridTemplateColumns = `repeat(${currentBoard.cols}, 1fr)`;
-            container.style.gridTemplateRows = `repeat(${currentBoard.rows}, 1fr)`;
-
-            const maxDimension = Math.max(currentBoard.rows, currentBoard.cols);
-            let dynamicFontSize = '24px';
-            if (maxDimension >= 5) dynamicFontSize = '15px';
-            else if (maxDimension >= 3) dynamicFontSize = '20px';
-
-            const totalCells = currentBoard.rows * currentBoard.cols;
-            for(let i=0; i<totalCells; i++) {
-                const bData = currentBoard.buttons[i];
-                const btn = document.createElement('div');
-                btn.className = 'voca-button';
-                
-                if(bData) {
-                    if(bData.img) {
-                        const img = document.createElement('img');
-                        img.src = bData.img;
-                        btn.appendChild(img);
-                    }
-                    if(bData.text) {
-                        const lbl = document.createElement('div');
-                        lbl.className = 'label';
-                        lbl.style.fontSize = dynamicFontSize;
-                        lbl.innerText = bData.text;
-                        btn.appendChild(lbl);
-                    }
-                    btn.onclick = () => playAndZoom(bData);
-                } else {
-                    btn.style.visibility = 'hidden';
-                }
-                container.appendChild(btn);
-            }
-            changeScreen('screen-play');
-        }
-
-        function startEditExistingBoard() {
-            const saved = localStorage.getItem('saved_voca_board');
-            if(!saved) {
-                alert("保存されたボードがありません。");
-                return;
-            }
-            currentBoard = JSON.parse(saved);
-            editCancelToMain = true;
-            renderEditGrid();
-            changeScreen('screen-edit');
-        }
-
         function playAndZoom(buttonData) {
             if (isAudioPlaying) return;
 
@@ -798,11 +942,7 @@
             if(buttonData.audio) {
                 isAudioPlaying = true;
                 const audio = new Audio(buttonData.audio);
-                
-                audio.onended = function() {
-                    isAudioPlaying = false;
-                };
-                
+                audio.onended = function() { isAudioPlaying = false; };
                 audio.play().catch(e => {
                     console.log("音声再生失敗: " + e.message);
                     isAudioPlaying = false;
