@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Simple VOCA App v1.1.1</title>
+    <title>Simple VOCA App v1.1.2</title>
     <style>
         :root {
             --bg-color: #f4f6f9;
@@ -430,7 +430,7 @@
 <body>
 
     <div id="screen-main" class="screen active">
-        <header>Simple VOCA App v1.1.1</header>
+        <header>Simple VOCA App v1.1.2</header>
         <div class="screen-content">
             <div class="menu-container">
                 <div class="menu-icon menu-icon-create" onclick="changeScreen('screen-settings')">
@@ -855,46 +855,20 @@
             changeScreen('screen-play');
         }
 
-        function openModal(index) {
-            activeEditIndex = index;
-            tempImgData = null;
-            tempAudioData = null;
-            
-            document.getElementById('modal-text').value = '';
-            document.getElementById('modal-file').value = '';
-            document.getElementById('modal-img-preview').style.display = 'none';
-            document.getElementById('record-status').innerText = '';
-            document.getElementById('modal-listen-btn').style.display = 'none';
-            
-            const recordBtn = document.getElementById('modal-record-btn');
-            if (sharedStream && sharedStream.active) {
-                recordState = 'ready';
-                recordBtn.innerText = "🔴 録音をはじめる";
-                recordBtn.className = "record-btn ready";
-            } else {
-                recordState = 'unauthorized';
-                recordBtn.innerText = "🎤 マイクの使用を許可する";
-                recordBtn.className = "record-btn";
-            }
-            
-            if(currentBoard.buttons[index]) {
-                const data = currentBoard.buttons[index];
-                document.getElementById('modal-text').value = data.text || '';
-                if(data.img) {
-                    document.getElementById('modal-img-preview').style.display = 'flex';
-                    document.getElementById('preview-tag').src = data.img;
-                    tempImgData = data.img;
-                }
-                if(data.audio) {
-                    tempAudioData = data.audio;
-                    document.getElementById('modal-listen-btn').style.display = 'block';
-                }
-            }
-            document.getElementById('edit-modal').classList.add('active');
-        }
-
+        /* --- 【v1.1.2 強化コア】マスの設定モーダルを閉じる時の完全シャットダウン処理 --- */
         function closeModal() {
-            if(recordState === 'recording') { stopRecordingAction(); }
+            if(recordState === 'recording') { 
+                stopRecordingAction(); 
+            }
+            // 【iOS対策】開いていたマイクストリームのトラックをすべて走査して物理的に完全切断する
+            if (sharedStream) {
+                sharedStream.getTracks().forEach(track => {
+                    track.stop();
+                    console.log("iOSマイククリーンアップ: トラックを停止しました");
+                });
+                sharedStream = null; // メモリを完全に解放
+            }
+            recordState = 'unauthorized'; // 状態を初期化して次回確実に再申請させる
             document.getElementById('edit-modal').classList.remove('active');
         }
 
@@ -910,6 +884,7 @@
             }
         }
 
+        /* --- 【v1.1.2 強化コア】録音開始処理の安定化 --- */
         async function handleRecordClick() {
             const btn = document.getElementById('modal-record-btn');
             const status = document.getElementById('record-status');
@@ -917,6 +892,7 @@
 
             if (recordState === 'unauthorized') {
                 try {
+                    // 毎回新品のストリームをリクエストする
                     sharedStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     recordState = 'ready';
                     btn.innerText = "🔴 録音をはじめる";
@@ -929,7 +905,8 @@
             } 
             else if (recordState === 'ready') {
                 audioChunks = [];
-                if (!sharedStream || !sharedStream.active) {
+                // iOSで古いストリームが死んでいるケースを想定し、安全装置として再取得を確認
+                if (!sharedStream || sharedStream.getTracks().every(t => t.readyState === 'ended')) {
                     sharedStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 }
                 
@@ -975,6 +952,7 @@
             }
         }
 
+        /* --- 【v1.1.2 強化コア】マスの決定時にもマイクを一度完全に解放する --- */
         function applyButtonChanges() {
             const text = document.getElementById('modal-text').value;
             if(text || tempImgData || tempAudioData) {
@@ -987,7 +965,7 @@
                 delete currentBoard.buttons[activeEditIndex];
             }
             renderEditGrid();
-            closeModal();
+            closeModal(); // ここで自動的にマイクが完全遮断（クリーンアップ）されます
         }
 
         function playAndZoom(buttonData) {
