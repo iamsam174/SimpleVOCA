@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Simple VOCA App v1.1.3</title>
+    <title>Simple VOCA App v1.1.4</title>
     <style>
         :root {
             --bg-color: #f4f6f9;
@@ -430,7 +430,7 @@
 <body>
 
     <div id="screen-main" class="screen active">
-        <header>Simple VOCA App v1.1.3</header>
+        <header>Simple VOCA App v1.1.4</header>
         <div class="screen-content">
             <div class="menu-container">
                 <div class="menu-icon menu-icon-create" onclick="changeScreen('screen-settings')">
@@ -670,9 +670,12 @@
 
         function openRenameModal(key) {
             renameTargetKey = key;
-            const inputField = document.getElementById('board-rename-input');
-            inputField.value = key;
-            document.getElementById('rename-modal').classList.add('active');
+            // 【iOS安定化】時間差を設けてキーボードフォーカスとの競合を回避
+            setTimeout(() => {
+                const inputField = document.getElementById('board-rename-input');
+                if(inputField) inputField.value = key;
+                document.getElementById('rename-modal').classList.add('active');
+            }, 10);
         }
 
         function closeRenameModal() {
@@ -787,10 +790,14 @@
             }
         }
 
+        /* --- 【v1.1.4 修正箇所】iOS/iPadOS特有のタップイベント衝突を防ぐ時間差ポップアップ処理 --- */
         function openSaveNameModal() {
-            const nameInput = document.getElementById('board-name-input');
-            nameInput.value = currentBoardKey ? currentBoardKey : '';
-            document.getElementById('name-modal').classList.add('active');
+            // 0.01秒（10ミリ秒）だけ処理を遅らせることで、iOS内のクリックイベントを完全に完了させてからポップアップを安全に起動
+            setTimeout(() => {
+                const nameInput = document.getElementById('board-name-input');
+                if(nameInput) nameInput.value = currentBoardKey ? currentBoardKey : '';
+                document.getElementById('name-modal').classList.add('active');
+            }, 10);
         }
 
         function closeNameModal() {
@@ -866,39 +873,42 @@
             document.getElementById('record-status').innerText = '';
             document.getElementById('modal-listen-btn').style.display = 'none';
             
-            const recordBtn = document.getElementById('modal-record-btn');
-            if (sharedStream && sharedStream.active) {
-                recordState = 'ready';
-                recordBtn.innerText = "🔴 録音をはじめる";
-                recordBtn.className = "record-btn ready";
-            } else {
-                recordState = 'unauthorized';
-                recordBtn.innerText = "🎤 マイクの使用を許可する";
-                recordBtn.className = "record-btn";
-            }
-            
-            if(currentBoard.buttons[index]) {
-                const data = currentBoard.buttons[index];
-                document.getElementById('modal-text').value = data.text || '';
-                if(data.img) {
-                    document.getElementById('modal-img-preview').style.display = 'flex';
-                    document.getElementById('preview-tag').src = data.img;
-                    tempImgData = data.img;
+            // 【iOS安定化】モーダル内のマイク初期表示を少し遅らせて描画バグを完全にガード
+            setTimeout(() => {
+                const recordBtn = document.getElementById('modal-record-btn');
+                if(!recordBtn) return;
+                if (sharedStream && sharedStream.active) {
+                    recordState = 'ready';
+                    recordBtn.innerText = "🔴 録音をはじめる";
+                    recordBtn.className = "record-btn ready";
+                } else {
+                    recordState = 'unauthorized';
+                    recordBtn.innerText = "🎤 マイクの使用を許可する";
+                    recordBtn.className = "record-btn";
                 }
-                if(data.audio) {
-                    tempAudioData = data.audio;
-                    document.getElementById('modal-listen-btn').style.display = 'block';
+                
+                if(currentBoard.buttons[index]) {
+                    const data = currentBoard.buttons[index];
+                    document.getElementById('modal-text').value = data.text || '';
+                    if(data.img) {
+                        document.getElementById('modal-img-preview').style.display = 'flex';
+                        document.getElementById('preview-tag').src = data.img;
+                        tempImgData = data.img;
+                    }
+                    if(data.audio) {
+                        tempAudioData = data.audio;
+                        document.getElementById('modal-listen-btn').style.display = 'block';
+                    }
                 }
-            }
+            }, 10);
+
             document.getElementById('edit-modal').classList.add('active');
         }
 
-        /* --- 【v1.1.3 安全改修】マイク終了時のNullチェック安全ガードを追加 --- */
         function closeModal() {
             if(recordState === 'recording') { 
                 stopRecordingAction(); 
             }
-            // 【安全ガード】sharedStream が存在し、かつ中身がある場合のみトラック停止を走らせる
             if (sharedStream && typeof sharedStream.getTracks === 'function') {
                 try {
                     sharedStream.getTracks().forEach(track => {
@@ -907,7 +917,7 @@
                         }
                     });
                 } catch(e) {
-                    console.log("トラック停止時の軽微なエラーをスキップ: " + e.message);
+                    console.log("トラック停止スキップ: " + e.message);
                 }
                 sharedStream = null; 
             }
