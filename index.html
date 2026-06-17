@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Simple VOCA App v1.1.4</title>
+    <title>Simple VOCA App v1.1.5</title>
     <style>
         :root {
             --bg-color: #f4f6f9;
@@ -430,7 +430,7 @@
 <body>
 
     <div id="screen-main" class="screen active">
-        <header>Simple VOCA App v1.1.4</header>
+        <header>Simple VOCA App v1.1.5</header>
         <div class="screen-content">
             <div class="menu-container">
                 <div class="menu-icon menu-icon-create" onclick="changeScreen('screen-settings')">
@@ -670,7 +670,6 @@
 
         function openRenameModal(key) {
             renameTargetKey = key;
-            // 【iOS安定化】時間差を設けてキーボードフォーカスとの競合を回避
             setTimeout(() => {
                 const inputField = document.getElementById('board-rename-input');
                 if(inputField) inputField.value = key;
@@ -772,7 +771,7 @@
                         const lbl = document.createElement('div');
                         lbl.className = 'label';
                         lbl.style.fontSize = dynamicFontSize;
-                        lbl.innerText = bData.text;
+                        lbl.innerText = bText = bData.text;
                         btn.appendChild(lbl);
                     }
                 } else {
@@ -790,9 +789,7 @@
             }
         }
 
-        /* --- 【v1.1.4 修正箇所】iOS/iPadOS特有のタップイベント衝突を防ぐ時間差ポップアップ処理 --- */
         function openSaveNameModal() {
-            // 0.01秒（10ミリ秒）だけ処理を遅らせることで、iOS内のクリックイベントを完全に完了させてからポップアップを安全に起動
             setTimeout(() => {
                 const nameInput = document.getElementById('board-name-input');
                 if(nameInput) nameInput.value = currentBoardKey ? currentBoardKey : '';
@@ -813,12 +810,17 @@
                 return;
             }
 
-            allBoards[boardName] = currentBoard;
-            localStorage.setItem('saved_voca_all_boards', JSON.stringify(allBoards));
-            
-            alert(`ボード「${boardName}」を保存しました！`);
-            closeNameModal();
-            changeScreen('screen-main');
+            // 【LocalStorage容量エラーの安全装置】
+            try {
+                allBoards[boardName] = currentBoard;
+                localStorage.setItem('saved_voca_all_boards', JSON.stringify(allBoards));
+                alert(`ボード「${boardName}」を保存しました！`);
+                closeNameModal();
+                changeScreen('screen-main');
+            } catch (error) {
+                console.error(error);
+                alert("【ご注意】容量オーバーのため保存できませんでした。\n使っていない古いボードを削除するか、ボタンに登録した写真を減らして再度お試しください。");
+            }
         }
 
         function startPlaybackMode() {
@@ -873,7 +875,6 @@
             document.getElementById('record-status').innerText = '';
             document.getElementById('modal-listen-btn').style.display = 'none';
             
-            // 【iOS安定化】モーダル内のマイク初期表示を少し遅らせて描画バグを完全にガード
             setTimeout(() => {
                 const recordBtn = document.getElementById('modal-record-btn');
                 if(!recordBtn) return;
@@ -925,13 +926,40 @@
             document.getElementById('edit-modal').classList.remove('active');
         }
 
+        /* --- 【v1.1.5 新設コア】選択・撮影された画像を「最大横幅600px」に超軽量化する圧縮処理 --- */
         function previewImage(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    document.getElementById('modal-img-preview').style.display = 'flex';
-                    document.getElementById('preview-tag').src = e.target.result;
-                    tempImgData = e.target.result;
+                    const img = new Image();
+                    img.onload = function() {
+                        // キャンバス機能を使って画像をリサイズする
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        // 最大横幅（または縦幅）を600ピ国セルに設定
+                        const MAX_WIDTH = 600;
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        if (width > MAX_WIDTH) {
+                            height = Math.round((height * MAX_WIDTH) / width);
+                            width = MAX_WIDTH;
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // ウェブ用に少し圧縮（画質を75%に設定）してデータ化
+                        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
+                        
+                        document.getElementById('modal-img-preview').style.display = 'flex';
+                        document.getElementById('preview-tag').src = compressedDataUrl;
+                        tempImgData = compressedDataUrl; // 超軽量化された写真データをセット
+                        console.log("画像自動圧縮が完了しました。");
+                    };
+                    img.src = e.target.result;
                 }
                 reader.readAsDataURL(input.files[0]);
             }
