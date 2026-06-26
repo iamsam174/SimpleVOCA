@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Simple VOCA App v1.1.5</title>
+    <title>Simple VOCA App v1.1.6</title>
     <style>
         :root {
             --bg-color: #f4f6f9;
@@ -317,7 +317,7 @@
             width: 90%;
             max-width: 480px;
             text-align: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.155);
         }
         .modal-content input[type="text"] {
             width: 100%;
@@ -380,11 +380,13 @@
         }
         .modal-actions {
             display: flex;
-            gap: 15px;
+            gap: 10px;
             margin-top: 20px;
         }
-        .btn-save { background: var(--success-color); color: white; flex: 1; padding: 14px; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;}
-        .btn-cancel { background: #999; color: white; flex: 1; padding: 14px; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;}
+        .btn-save { background: var(--success-color); color: white; flex: 1.2; padding: 14px 10px; border: none; border-radius: 10px; font-size: 17px; font-weight: bold; cursor: pointer;}
+        .btn-cancel { background: #999; color: white; flex: 1; padding: 14px 10px; border: none; border-radius: 10px; font-size: 17px; font-weight: bold; cursor: pointer;}
+        /* 【v1.1.6 新設】マス削除ボタンの個別スタイル */
+        .btn-delete-cell { background: var(--danger-color); color: white; flex: 1; padding: 14px 10px; border: none; border-radius: 10px; font-size: 17px; font-weight: bold; cursor: pointer; display: none; }
 
         /* 拡大表示用オーバレイ */
         #zoom-overlay {
@@ -430,7 +432,7 @@
 <body>
 
     <div id="screen-main" class="screen active">
-        <header>Simple VOCA App v1.1.5</header>
+        <header>Simple VOCA App v1.1.6</header>
         <div class="screen-content">
             <div class="menu-container">
                 <div class="menu-icon menu-icon-create" onclick="changeScreen('screen-settings')">
@@ -521,6 +523,7 @@
             <button id="modal-listen-btn" class="listen-btn" onclick="previewAudio()">▶ 録音をきく（試し聞き）</button>
 
             <div class="modal-actions">
+                <button id="modal-delete-cell-btn" class="btn-delete-cell" onclick="applyButtonDelete()">ボタンを削除</button>
                 <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
                 <button class="btn-save" onclick="applyButtonChanges()">決定</button>
             </div>
@@ -771,7 +774,7 @@
                         const lbl = document.createElement('div');
                         lbl.className = 'label';
                         lbl.style.fontSize = dynamicFontSize;
-                        lbl.innerText = bText = bData.text;
+                        lbl.innerText = bData.text;
                         btn.appendChild(lbl);
                     }
                 } else {
@@ -810,7 +813,6 @@
                 return;
             }
 
-            // 【LocalStorage容量エラーの安全装置】
             try {
                 allBoards[boardName] = currentBoard;
                 localStorage.setItem('saved_voca_all_boards', JSON.stringify(allBoards));
@@ -875,6 +877,14 @@
             document.getElementById('record-status').innerText = '';
             document.getElementById('modal-listen-btn').style.display = 'none';
             
+            // すでにデータがあるマスを開いた時だけ「ボタンを削除」を表示する
+            const delCellBtn = document.getElementById('modal-delete-cell-btn');
+            if(currentBoard.buttons[index]) {
+                delCellBtn.style.display = 'inline-block';
+            } else {
+                delCellBtn.style.display = 'none';
+            }
+            
             setTimeout(() => {
                 const recordBtn = document.getElementById('modal-record-btn');
                 if(!recordBtn) return;
@@ -926,18 +936,24 @@
             document.getElementById('edit-modal').classList.remove('active');
         }
 
-        /* --- 【v1.1.5 新設コア】選択・撮影された画像を「最大横幅600px」に超軽量化する圧縮処理 --- */
+        /* --- 【v1.1.6 新設】特定のマスの中身（写真・名前・音声）を完全クリアする処理 --- */
+        function applyButtonDelete() {
+            if (confirm("このマスの写真、なまえ、音声をすべて削除して、新しく入力できるボタン（＋）に戻してもよろしいですか？")) {
+                delete currentBoard.buttons[activeEditIndex]; // オブジェクトからデータを消去
+                renderEditGrid(); // グリッド再描画
+                closeModal(); // モーダルを閉じ、マイクも安全クリーンアップ
+            }
+        }
+
         function previewImage(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const img = new Image();
                     img.onload = function() {
-                        // キャンバス機能を使って画像をリサイズする
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
                         
-                        // 最大横幅（または縦幅）を600ピ国セルに設定
                         const MAX_WIDTH = 600;
                         let width = img.width;
                         let height = img.height;
@@ -951,12 +967,11 @@
                         canvas.height = height;
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // ウェブ用に少し圧縮（画質を75%に設定）してデータ化
                         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
                         
                         document.getElementById('modal-img-preview').style.display = 'flex';
                         document.getElementById('preview-tag').src = compressedDataUrl;
-                        tempImgData = compressedDataUrl; // 超軽量化された写真データをセット
+                        tempImgData = compressedDataUrl;
                         console.log("画像自動圧縮が完了しました。");
                     };
                     img.src = e.target.result;
